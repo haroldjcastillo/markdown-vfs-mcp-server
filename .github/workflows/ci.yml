@@ -191,13 +191,27 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      - name: Publish markdown-btree-core to npm
-        run: cd core/pkg && npm publish --access public --provenance
+      - name: Publish markdown-btree-core to npm (if not exists)
+        run: |
+          PKG="@hjco/markdown-btree-core"
+          VERSION=$(node -e "console.log(require('./core/pkg/package.json').version)")
+          if npm view "$PKG@$VERSION" version 2>/dev/null | grep -q "$VERSION"; then
+            echo "$PKG@$VERSION already published, skipping"
+          else
+            cd core/pkg && npm publish --access public --provenance
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish markdown-vfs-mcp-server to npm
-        run: cd server && npm publish --access public --provenance
+      - name: Publish markdown-vfs-mcp-server to npm (if not exists)
+        run: |
+          PKG="@hjco/markdown-vfs-mcp-server"
+          VERSION=$(node -e "console.log(require('./server/package.json').version)")
+          if npm view "$PKG@$VERSION" version 2>/dev/null | grep -q "$VERSION"; then
+            echo "$PKG@$VERSION already published, skipping"
+          else
+            cd server && npm publish --access public --provenance
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -239,7 +253,7 @@ jobs:
           node -e "
             const fs = require('fs');
             const v = process.env.NEXT;
-            ['core/pkg/package.json', 'server/package.json'].forEach(f => {
+            ['server/package.json'].forEach(f => {
               const p = JSON.parse(fs.readFileSync(f));
               p.version = v;
               fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
@@ -250,6 +264,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add core/Cargo.toml core/pkg/package.json server/package.json
+          git add core/Cargo.toml server/package.json
           git commit -m "chore: bump version to ${{ steps.version.outputs.next }}"
           git push origin develop
