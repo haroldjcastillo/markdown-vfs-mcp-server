@@ -64,6 +64,15 @@ jobs:
       - name: Build WASM
         run: cd core && wasm-pack build --target nodejs
 
+      - name: Fix WASM package name (add @hjco scope)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('core/pkg/package.json', 'utf8'));
+            pkg.name = '@hjco/markdown-btree-core';
+            fs.writeFileSync('core/pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
       - name: Upload WASM pkg
         uses: actions/upload-artifact@v4
         with:
@@ -121,6 +130,15 @@ jobs:
         with:
           name: wasm-pkg
           path: core/pkg/
+
+      - name: Fix WASM package name (add @hjco scope)
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('core/pkg/package.json', 'utf8'));
+            pkg.name = '@hjco/markdown-btree-core';
+            fs.writeFileSync('core/pkg/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
 
       - uses: actions/setup-node@v4
         with:
