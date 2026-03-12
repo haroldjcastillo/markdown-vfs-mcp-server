@@ -1,6 +1,6 @@
 [package]
 name = "markdown-btree-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "High-performance B-Tree index for Markdown documents, exposed to WebAssembly via wasm-bindgen"
 license = "MIT"
