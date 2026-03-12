@@ -53,4 +53,3 @@ impl MarkdownDB {
         serde_wasm_bindgen::to_value(&result).unwrap_or(JsValue::NULL)
     }
 }
-

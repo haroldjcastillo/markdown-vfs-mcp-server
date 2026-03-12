@@ -42,7 +42,7 @@ fn test_read_content() {
     assert_eq!(engine.read("chapter-1"), Some("Hello world.".to_string()));
 }
 
-/// Verifies that Markdown link/image references (e.g., [id]: url) are parsed into the index 
+/// Verifies that Markdown link/image references (e.g., [id]: url) are parsed into the index
 /// and omitted from the actual text content of a section.
 #[test]
 fn test_references_excluded_from_content() {
@@ -97,4 +97,3 @@ fn test_html_headings() {
     assert_eq!(children.total, 1);
     assert!(children.items[0].ends_with("subtitle"));
 }
-

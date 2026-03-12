@@ -40,7 +40,6 @@ pub struct MarkdownEngine {
     pub(crate) root_nodes: Vec<String>,
 }
 
-
 /// Generates a URL-safe slug from a heading title.
 pub fn slugify(title: &str) -> String {
     let mut out = String::new();
@@ -163,7 +162,6 @@ pub(crate) fn parse_heading(line: &str) -> Option<(usize, String)> {
     parse_markdown_heading(line).or_else(|| parse_html_heading(line))
 }
 
-
 impl MarkdownEngine {
     /// Parses the provided Markdown content and builds a hierarchical Virtual File System index.
     pub fn new(content: &str) -> MarkdownEngine {
@@ -259,7 +257,6 @@ impl MarkdownEngine {
             }
         }
     }
-
 
     /// Lists direct sub-sections for a given hierarchical path with pagination support.
     /// Use an empty path ("") to retrieve root-level headings.
@@ -362,4 +359,3 @@ impl MarkdownEngine {
             .collect()
     }
 }
-

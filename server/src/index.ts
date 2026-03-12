@@ -180,7 +180,8 @@ async function main(): Promise<void> {
             path: {
               type: "string",
               default: "",
-              description: "Hierarchical path (e.g. 'chapter-1/introduction'). Leave empty for root.",
+              description:
+                "Hierarchical path (e.g. 'chapter-1/introduction'). Leave empty for root.",
             },
             page: {
               type: "number",

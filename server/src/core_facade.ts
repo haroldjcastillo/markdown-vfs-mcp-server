@@ -82,4 +82,3 @@ export class CoreFacade {
     return this.db.search(query);
   }
 }
-
