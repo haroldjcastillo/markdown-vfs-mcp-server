@@ -19,13 +19,60 @@ A high-performance **Model Context Protocol (MCP)** server that exposes large Ma
 └────────────────┘      └─────────────────┘      └─────────────────┘
 ```
 
-## 🛠️ Prerequisites
+## 📦 Installation
+
+Install the MCP server globally from npm:
+
+```bash
+npm install -g @hjco/markdown-vfs-mcp-server
+```
+
+Or use it directly with `npx` without installing:
+
+```bash
+npx @hjco/markdown-vfs-mcp-server
+```
+
+## ⚡ MCP Client Configuration
+
+Add the server to your MCP client configuration. It communicates over **stdio**. The configuration is the same for all clients (Claude Desktop, Cursor, VS Code MCP extension, etc.).
+
+Edit your client's MCP config file and add:
+
+```json
+{
+  "mcpServers": {
+    "markdown-vfs": {
+      "command": "npx",
+      "args": ["-y", "@hjco/markdown-vfs-mcp-server"],
+      "env": {
+        "MARKDOWN_PATH": "/absolute/path/to/your/document.md"
+      }
+    }
+  }
+}
+```
+
+| Client | Config file location |
+|---|---|
+| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Claude Desktop (Windows) | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Cursor | `.cursor/mcp.json` in your project root |
+| VS Code (MCP extension) | `.vscode/mcp.json` in your project root |
+
+> **Tip:** You can omit `MARKDOWN_PATH` and call the `load_markdown` tool at runtime to load a file dynamically.
+
+---
+
+## 🛠️ Development Prerequisites
+
+> Only needed if you want to build from source.
 
 - **Node.js**: v20 or higher
 - **Rust**: Stable toolchain (2021 edition)
 - **wasm-pack**: For compiling the Rust core
 
-## 📦 Installation & Build
+## 🔨 Build from Source
 
 The project uses a **Makefile** to automate the build process across the Rust and TypeScript components.
 
@@ -38,7 +85,6 @@ make build
 ```
 
 ### Development Utilities
-You can also use the following commands for validation and testing:
 
 ```bash
 make check   # Run Rust clippy and cargo check
@@ -48,22 +94,10 @@ make fmt     # Check code formatting (Rust and TS)
 make clean   # Remove all build artifacts and node_modules
 ```
 
-## 🖥️ Usage
-
-You can start the server via `stdio` using the following command.
-
-### Environment Variable (Recommended)
-Set `MARKDOWN_PATH` to the absolute path of your target Markdown file:
+## 🖥️ Running Locally (from source)
 
 ```bash
 MARKDOWN_PATH=/path/to/your/book.md node server/dist/index.js
-```
-
-### Manual Loading
-Alternatively, start the server and use the `load_markdown` tool to dynamicly load files:
-
-```bash
-node server/dist/index.js
 ```
 
 ## 🛠️ MCP Tools Reference
