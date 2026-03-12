@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
+
+# Rust core artifacts
+core/target/
+core/pkg/
+
+# Node artifacts
+server/node_modules/
+server/dist/
+server/npm-debug.log*
+server/yarn-error.log*
+server/pnpm-debug.log*
+
+# Generic temp/editor
+*.log
+*.tmp
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Spec files
+#.spec
+
+# Node
+node_modules

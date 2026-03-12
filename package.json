@@ -1,0 +1,5 @@
+{
+  "name": "markdown-vfs-mcp-server",
+  "private": true,
+  "workspaces": ["server", "core/pkg"]
+}

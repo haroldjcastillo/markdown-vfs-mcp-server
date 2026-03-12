@@ -1,0 +1,21 @@
+[package]
+name = "markdown-btree-core"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance B-Tree index for Markdown documents, exposed to WebAssembly via wasm-bindgen"
+license = "MIT"
+authors = ["Harold Castillo"]
+repository = "https://github.com/haroldjcastillo/markdown-vfs-mcp-server"
+homepage = "https://github.com/haroldjcastillo/markdown-vfs-mcp-server"
+documentation = "https://docs.rs/markdown-btree-core"
+keywords = ["markdown", "btree", "wasm", "index", "mcp"]
+categories = ["wasm", "text-processing", "data-structures"]
+exclude = ["target/", "tests/"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"

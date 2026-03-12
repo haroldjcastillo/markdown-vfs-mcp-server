@@ -1,0 +1,223 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: cargo-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: cargo-
+
+      - name: Rust format
+        run: cd core && cargo fmt --check
+
+      - name: Clippy
+        run: cd core && cargo clippy -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: cargo-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: cargo-
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Unit tests
+        run: cd core && cargo test
+
+      - name: Build WASM
+        run: cd core && wasm-pack build --target nodejs
+
+      - name: Upload WASM pkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-pkg
+          path: core/pkg/
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Download WASM pkg
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-pkg
+          path: core/pkg/
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type check
+        run: cd server && npx tsc --noEmit
+
+      - name: Lint
+        run: cd server && npx eslint src
+
+      - name: Format check
+        run: cd server && npx prettier --check "src/**/*.ts"
+
+      - name: Build server
+        run: cd server && npm run build
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: build
+    # Only on merges to main (not on pull_request events).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # to push the git tag
+      id-token: write  # npm provenance attestation
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download WASM pkg
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-pkg
+          path: core/pkg/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-publish-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: cargo-publish-
+
+      - name: Install server dependencies
+        run: npm install
+
+      - name: Build TypeScript server
+        run: cd server && npm run build
+
+      - name: Read current version
+        id: version
+        run: |
+          VERSION=$(grep '^version' core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "current=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.current }}"
+          git push origin "v${{ steps.version.outputs.current }}"
+
+      - name: Publish Rust crate to crates.io
+        run: cd core && cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish markdown-btree-core to npm
+        run: cd core/pkg && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish markdown-vfs-mcp-server to npm
+        run: cd server && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  version-bump:
+    name: Version Bump
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute next minor version
+        id: version
+        run: |
+          CURRENT=$(grep '^version' core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          echo "next=$MAJOR.$((MINOR + 1)).0" >> $GITHUB_OUTPUT
+
+      - name: Checkout or create develop branch
+        run: |
+          git fetch origin
+          if git ls-remote --heads origin develop | grep -q develop; then
+            git checkout develop
+            git merge --ff-only origin/main || git merge origin/main -m "chore: merge main into develop"
+          else
+            git checkout -b develop
+          fi
+
+      - name: Bump versions in all manifests
+        env:
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          sed -i "s/^version = \"[^\"]*\"/version = \"$NEXT\"/" core/Cargo.toml
+          node -e "
+            const fs = require('fs');
+            const v = process.env.NEXT;
+            ['core/pkg/package.json', 'server/package.json'].forEach(f => {
+              const p = JSON.parse(fs.readFileSync(f));
+              p.version = v;
+              fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
+            });
+          "
+
+      - name: Commit and push develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add core/Cargo.toml core/pkg/package.json server/package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.next }}"
+          git push origin develop
