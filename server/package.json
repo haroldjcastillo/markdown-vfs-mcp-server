@@ -8,7 +8,8 @@
     "markdown-vfs-mcp-server": "dist/index.js"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "README.md"
   ],
   "keywords": [
     "mcp",
