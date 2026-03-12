@@ -168,12 +168,17 @@ jobs:
           VERSION=$(grep '^version' core/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
           echo "current=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create git tag
+      - name: Create git tag (if not exists)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version.outputs.current }}"
-          git push origin "v${{ steps.version.outputs.current }}"
+          TAG="v${{ steps.version.outputs.current }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping create"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
 
       - name: Publish Rust crate to crates.io
         run: cd core && cargo publish
