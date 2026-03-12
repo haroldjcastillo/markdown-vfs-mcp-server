@@ -180,8 +180,14 @@ jobs:
             git push origin "$TAG"
           fi
 
-      - name: Publish Rust crate to crates.io
-        run: cd core && cargo publish
+      - name: Publish Rust crate to crates.io (if not exists)
+        run: |
+          VERSION=$(cd core && cargo metadata --no-deps --format-version 1 | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).packages[0].version)")
+          if curl -sf "https://crates.io/api/v1/crates/markdown-btree-core/$VERSION" -H "User-Agent: ci-publish-check" | grep -q '"num"'; then
+            echo "markdown-btree-core@$VERSION already published on crates.io, skipping"
+          else
+            cd core && cargo publish
+          fi
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
